@@ -9,6 +9,7 @@ use crate::db::models::relation_target::RelationTarget;
 use crate::domain::*;
 use crate::util::*;
 
+/// Control data for how to generate next instance for downstream `Meta`
 #[derive(Debug, Clone, Default)]
 pub struct Mission {
     pub to: Meta,
