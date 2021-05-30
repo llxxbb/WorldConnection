@@ -11,3 +11,4 @@ nature.sqlite
 nature.sqlite-journal
 /out
 .run
+*/*.bak_*
