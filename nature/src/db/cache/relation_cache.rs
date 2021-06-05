@@ -16,7 +16,7 @@ lazy_static! {
 
 #[async_trait]
 pub trait RelationCache {
-    async fn get<R, MC, M>(&self, meta_from: &str, getter: &R, meta_cache: &MC, meta: &M) -> Relations
+    async fn get<R, MC, M>(&self, meta: &Meta, getter: &R, meta_cache: &MC, meta_dao: &M) -> Relations
         where R: RelationDao, MC: MetaCache, M: MetaDao;
 }
 
@@ -24,27 +24,26 @@ pub struct RelationCacheImpl;
 
 #[async_trait]
 impl RelationCache for RelationCacheImpl {
-    async fn get<R, MC, M>(&self, meta_from: &str, getter: &R, meta_cache: &MC, meta: &M) -> Relations
+    async fn get<R, MC, M>(&self, meta: &Meta, getter: &R, meta_cache: &MC, meta_dao: &M) -> Relations
         where R: RelationDao, MC: MetaCache, M: MetaDao {
+        let meta_from: &str = &meta.get_key();
         {
             let mut cache = CACHE_MAPPING.lock().unwrap();
             if let Some(rtn) = cache.get(meta_from) {
                 return Ok(rtn.clone());
             }
         }
-        let meta_type = meta_cache.get(meta_from, meta).await?.get_meta_type();
+        let meta_type = meta.get_meta_type();
         if meta_type == MetaType::Multi || meta_type == MetaType::Loop {
             let msg = format!("MetaType::Multi && MetaType::Loop can't be used as `from` in `Relation`, the meta is: {}", meta_from);
             warn!("{}", msg);
             return Err(NatureError::VerifyError(msg));
         }
-        let rtn = getter.get_relations(meta_from, meta_cache, meta).await?;
-        {
-            let cpy = rtn.clone();
-            let mut cache = CACHE_MAPPING.lock().unwrap();
-            cache.insert(meta_from.to_string(), rtn);
-            Ok(cpy)
-        }
+        let rtn = getter.get_relations(meta_from, meta_cache, meta_dao).await?;
+        let cpy = rtn.clone();
+        let mut cache = CACHE_MAPPING.lock().unwrap();
+        cache.insert(meta_from.to_string(), rtn);
+        Ok(cpy)
     }
 }
 
@@ -56,19 +55,19 @@ mod test {
 
     #[tokio::test]
     async fn meta_type_is_multi_or_loop() {
-        let from = "M:error:1";
+        let from = Meta::from_string("M:error:1").unwrap();
         let result = C_R.get(&from, &RMockERR {}, &MCMock {}, &MetaMock {}).await;
         let error = result.err().unwrap().to_string();
         assert_eq!(true, error.contains("be used as"));
 
-        let from = "L:error:1";
+        let from = Meta::from_string("L:error:1").unwrap();
         let result = C_R.get(&from, &RMockERR2, &MCMock {}, &MetaMock {}).await;
         assert_eq!(true, result.err().unwrap().to_string().contains("be used as"));
     }
 
     #[tokio::test]
     async fn relation_error() {
-        let from = "B:error:1";
+        let from = Meta::from_string("B:error:1").unwrap();
         // this will call mocker
         let result = C_R.get(&from, &RMockERR {}, &MCMock {}, &MetaMock {}).await;
         assert_eq!(result, Err(NatureError::EnvironmentError("can't connect".to_string())));
@@ -80,7 +79,7 @@ mod test {
     /// test cache also
     #[tokio::test]
     async fn get_none() {
-        let from = "B:none:1";
+        let from = Meta::from_string("B:none:1").unwrap();
         // this will call mocker
         let result = C_R.get(&from, &RMockNone {}, &MCMock {}, &MetaMock {}).await;
         assert_eq!(result.is_ok(), true);

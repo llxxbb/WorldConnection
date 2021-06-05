@@ -13,8 +13,8 @@ pub struct IncomeController {}
 impl IncomeController {
     /// born an instance which is the beginning of the changes.
     pub async fn input(mut instance: Instance) -> Result<String> {
-        let _ = check_and_revise(&mut instance).await?;
-        let relations = C_R.get(&instance.meta, &*D_R, &*C_M, &*D_M).await?;
+        let meta = check_and_revise(&mut instance).await?;
+        let relations = C_R.get(&meta, &*D_R, &*C_M, &*D_M).await?;
         let mission = Mission::get_by_instance(&instance, &relations, context_check, state_check);
         // for o in &mission {
         //     debug!("--generate mission from:{},to:{}", &instance.meta, o.to.meta_string());
@@ -126,7 +126,7 @@ async fn get_task_and_last(task: &RawTask) -> Result<(TaskForConvert, Option<Ins
     Ok((task, last))
 }
 
-async fn check_and_revise(instance: &mut Instance) -> Result<&mut Instance> {
+async fn check_and_revise(instance: &mut Instance) -> Result<Meta> {
     let meta: Meta = C_M.get(&instance.meta, &*D_M).await?;    // verify meta
     // normalize meta
     instance.meta = meta.meta_string();
@@ -140,5 +140,6 @@ async fn check_and_revise(instance: &mut Instance) -> Result<&mut Instance> {
             return Err(NatureError::VerifyError("you can't skip state_version for instance".to_string()));
         }
     }
-    instance.revise()
+    let _ = instance.revise();
+    Ok(meta)
 }

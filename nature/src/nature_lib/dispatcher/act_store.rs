@@ -72,18 +72,18 @@ async fn duplicated_instance(task: TaskForStore, carrier: RawTask) -> Result<()>
 }
 
 pub async fn get_store_task(instance: &Instance, previous_mission: Option<Mission>) -> Result<TaskForStore> {
-    let meta_type = C_M.get(&instance.meta, &*D_M).await?.get_meta_type();
+    let meta = C_M.get(&instance.meta, &*D_M).await?;
+    let meta_type = meta.get_meta_type();
 
     let mission = match meta_type {
         MetaType::Loop => {
             gen_loop_mission(instance, &*C_M, &*D_M).await?
         }
         _ => {
-            let relations = C_R.get(&instance.meta, &*D_R, &*C_M, &*D_M).await?;
+            let relations = C_R.get(&meta, &*D_R, &*C_M, &*D_M).await?;
             Mission::get_by_instance(instance, &relations, context_check, state_check)
         }
     };
-    let meta = C_M.get(&instance.meta, &*D_M).await?;
     let task = TaskForStore::new(instance.clone(), mission, previous_mission, meta.need_cache());
     Ok(task)
 }
