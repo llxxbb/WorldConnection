@@ -26,7 +26,7 @@ pub struct RelationCacheImpl;
 impl RelationCache for RelationCacheImpl {
     async fn get<R, MC, M>(&self, meta: &Meta, getter: &R, meta_cache: &MC, meta_dao: &M) -> Relations
         where R: RelationDao, MC: MetaCache, M: MetaDao {
-        let meta_from: &str = &meta.get_key();
+        let meta_from: &str = &meta.meta_string();
         {
             let mut cache = CACHE_MAPPING.lock().unwrap();
             if let Some(rtn) = cache.get(meta_from) {
@@ -39,6 +39,7 @@ impl RelationCache for RelationCacheImpl {
             warn!("{}", msg);
             return Err(NatureError::VerifyError(msg));
         }
+        debug!("-------- neta from : {}", meta_from);
         let rtn = getter.get_relations(meta_from, meta_cache, meta_dao).await?;
         if rtn.is_empty() {
             info!("no relation found for meta: {}", meta.get_key());

@@ -13,6 +13,8 @@ Incompatible change: Split  `RelationSetting:selector` to `RelationSetting:selec
 
 ### 未完成
 
+relation_dao.get_relations 应该不需要meta_cache
+
 support edit relation
 
 - 文档：将所有的外部请求分为读写两个职能。查询和结算都为读。目前缺少写之前的验证过程。
