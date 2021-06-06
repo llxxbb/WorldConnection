@@ -1,23 +1,31 @@
 use std::clone::Clone;
+use std::ops::{Deref, DerefMut};
 use std::string::ToString;
 
 use crate::db::{FlowSelector, MetaCache, MetaDao, RawRelation, RelationSettings};
-use crate::db::models::relation_target::RelationTarget;
+use crate::db::downstream::DownStream;
 use crate::domain::*;
 
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct Relation {
     pub from: String,
-    pub to: Meta,
     pub selector: Option<FlowSelector>,
-    pub executor: Executor,
-    pub convert_before: Vec<Executor>,
-    pub convert_after: Vec<Executor>,
-    pub use_upstream_id: bool,
-    pub target_demand: RelationTarget,
-    pub delay: i32,
     pub delay_on_pare: (i32, u8),
-    pub id_bridge: bool,
+    pub downstream: DownStream,
+}
+
+impl Deref for Relation {
+    type Target = DownStream;
+
+    fn deref(&self) -> &Self::Target {
+        &self.downstream
+    }
+}
+
+impl DerefMut for Relation {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.downstream
+    }
 }
 
 impl Iterator for Relation {
@@ -50,30 +58,34 @@ impl Relation {
                 }
                 Relation {
                     from: val.from_meta.to_string(),
-                    to: m_to,
+                    downstream: DownStream {
+                        to: m_to,
+                        executor: e,
+                        convert_before: settings.convert_before,
+                        convert_after: settings.convert_after,
+                        use_upstream_id: settings.use_upstream_id,
+                        target_demand: settings.target.clone(),
+                        delay: settings.delay,
+                        id_bridge: settings.id_bridge,
+                    },
                     selector: selector.clone(),
-                    executor: e,
+                    delay_on_pare: settings.delay_on_para,
+                }
+            }
+            None => Relation {
+                from: val.from_meta.to_string(),
+                downstream: DownStream {
+                    to: m_to.clone(),
+                    executor: Executor::new_auto(),
                     convert_before: settings.convert_before,
                     convert_after: settings.convert_after,
                     use_upstream_id: settings.use_upstream_id,
                     target_demand: settings.target.clone(),
                     delay: settings.delay,
-                    delay_on_pare: settings.delay_on_para,
                     id_bridge: settings.id_bridge,
-                }
-            }
-            None => Relation {
-                from: val.from_meta.to_string(),
-                to: m_to.clone(),
+                },
                 selector: selector.clone(),
-                executor: Executor::new_auto(),
-                convert_before: settings.convert_before,
-                convert_after: settings.convert_after,
-                use_upstream_id: settings.use_upstream_id,
-                target_demand: settings.target.clone(),
-                delay: settings.delay,
                 delay_on_pare: settings.delay_on_para,
-                id_bridge: settings.id_bridge,
             }
         };
         debug!("load {}", val.get_string());

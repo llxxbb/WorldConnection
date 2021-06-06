@@ -1,26 +1,25 @@
-use std::borrow::BorrowMut;
 use std::collections::HashMap;
 use std::ops::{Deref, DerefMut, Sub};
 
 use chrono::{Local, TimeZone};
 
 use crate::db::{LastSelector, MetaCache, MetaDao, Relation};
+use crate::db::downstream::DownStream;
 use crate::db::flow_tool::{ContextChecker, StateChecker};
 use crate::db::models::relation_target::RelationTarget;
 use crate::domain::*;
 use crate::util::*;
 
-/// Control data for how to generate next instance for downstream `Meta`
+/// Control for how to generate next instance for downstream `Meta`
 #[derive(Debug, Clone, Default)]
 pub struct Mission {
-    pub to: Meta,
     pub last_select: LastSelector,
     pub sys_context: HashMap<String, String>,
-    pub downstream: Relation,
+    pub downstream: DownStream,
 }
 
 impl Deref for Mission {
-    type Target = Relation;
+    type Target = DownStream;
 
     fn deref(&self) -> &<Self as Deref>::Target {
         &self.downstream
@@ -29,7 +28,7 @@ impl Deref for Mission {
 
 impl DerefMut for Mission {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        self.downstream.borrow_mut()
+        &mut self.downstream
     }
 }
 
@@ -103,19 +102,15 @@ impl Mission {
                 Some(s) => Meta::new(&s, 1, MetaType::Dynamic)?,
             };
             let mission = Mission {
-                to: t,
                 last_select: Default::default(),
-                downstream: Relation {
-                    from: "".to_string(),
-                    to: Default::default(),
-                    selector: None,
+                downstream: DownStream {
+                    to: t,
                     executor: d.fun.clone(),
                     convert_before: vec![],
                     convert_after: vec![],
                     use_upstream_id: d.use_upstream_id,
                     target_demand: Default::default(),
                     delay: d.delay,
-                    delay_on_pare: (0, 0),
                     id_bridge: false,
                 },
                 sys_context: Default::default(),
@@ -159,19 +154,15 @@ impl Mission {
         where MC: MetaCache, M: MetaDao
     {
         let rtn = Mission {
-            to: mc_g.get(&raw.to, m_g).await?,
             last_select: raw.last_select.clone(),
-            downstream: Relation {
-                from: "".to_string(),
-                to: Default::default(),
-                selector: None,
+            downstream: DownStream {
+                to: mc_g.get(&raw.to, m_g).await?,
                 executor: raw.executor.clone(),
                 convert_before: raw.convert_before.clone(),
                 convert_after: raw.convert_after.clone(),
                 use_upstream_id: raw.use_upstream_id,
                 target_demand: raw.target_demand.clone(),
                 delay: raw.delay,
-                delay_on_pare: (0, 0),
                 id_bridge: raw.id_bridge,
             },
             sys_context: raw.sys_context.clone(),
@@ -217,9 +208,8 @@ impl From<Relation> for Mission {
             }
         };
         Mission {
-            to: r.to.clone(),
             last_select,
-            downstream: r.clone(),
+            downstream: r.downstream.clone(),
             sys_context: Default::default(),
         }
     }

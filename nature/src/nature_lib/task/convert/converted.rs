@@ -230,7 +230,7 @@ mod sys_context_test {
 mod test {
     use chrono::Local;
 
-    use crate::db::Relation;
+    use crate::db::downstream::DownStream;
     use crate::db::relation_target::RelationTarget;
 
     use super::*;
@@ -246,19 +246,15 @@ mod test {
         let task = TaskForConvert {
             from: from_ins,
             target: Mission {
-                to: meta.clone(),
                 last_select: Default::default(),
-                downstream: Relation {
-                    from: "".to_string(),
-                    to: Default::default(),
-                    selector: None,
+                downstream: DownStream {
+                    to: meta.clone(),
                     executor: Default::default(),
                     convert_before: vec![],
                     convert_after: vec![],
                     use_upstream_id: true,
                     target_demand: Default::default(),
                     delay: 0,
-                    delay_on_pare: (0, 0),
                     id_bridge: false,
                 },
                 sys_context: Default::default(),
@@ -294,16 +290,13 @@ mod test {
         let task = TaskForConvert {
             from: Default::default(),
             target: Mission {
-                to: {
-                    let mut m = Meta::from_string("B:hello:1").unwrap();
-                    let _ = m.set_states(Some(vec![State::Normal("new".to_string())]));
-                    m
-                },
                 last_select: Default::default(),
-                downstream: Relation {
-                    from: "".to_string(),
-                    to: Default::default(),
-                    selector: None,
+                downstream: DownStream {
+                    to: {
+                        let mut m = Meta::from_string("B:hello:1").unwrap();
+                        let _ = m.set_states(Some(vec![State::Normal("new".to_string())]));
+                        m
+                    },
                     executor: Default::default(),
                     convert_before: vec![],
                     convert_after: vec![],
@@ -315,7 +308,6 @@ mod test {
                         dynamic_para: "".to_string(),
                     },
                     delay: 0,
-                    delay_on_pare: (0, 0),
                     id_bridge: false,
                 },
                 sys_context: Default::default(),

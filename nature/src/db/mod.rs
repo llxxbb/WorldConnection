@@ -11,5 +11,4 @@ mod mysql_dao;
 mod raw_models;
 mod models;
 
-
 mod conn;
