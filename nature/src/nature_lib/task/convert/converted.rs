@@ -246,9 +246,9 @@ mod test {
         let task = TaskForConvert {
             from: from_ins,
             target: Mission {
-                last_select: Default::default(),
                 downstream: DownStream {
                     to: meta.clone(),
+                    down_selector: None,
                     executor: Default::default(),
                     convert_before: vec![],
                     convert_after: vec![],
@@ -290,13 +290,13 @@ mod test {
         let task = TaskForConvert {
             from: Default::default(),
             target: Mission {
-                last_select: Default::default(),
                 downstream: DownStream {
                     to: {
                         let mut m = Meta::from_string("B:hello:1").unwrap();
                         let _ = m.set_states(Some(vec![State::Normal("new".to_string())]));
                         m
                     },
+                    down_selector: None,
                     executor: Default::default(),
                     convert_before: vec![],
                     convert_after: vec![],

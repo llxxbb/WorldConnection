@@ -46,6 +46,7 @@ impl RelationDao for RelationDaoImpl {
             x if x > 0 => {
                 let mut rtn: Vec<Relation> = Vec::new();
                 for d in raw_vec {
+                    info!("meta: {}'s downstream raw relations: {:?}", from, d);
                     match Relation::from_raw(d, meta_cache_getter, meta_getter).await {
                         Ok(r) => rtn.push(r),
                         Err(e) => return Err(e)
@@ -120,6 +121,7 @@ impl RelationDao for RelationDaoImpl {
             to,
             &RelationSettings {
                 selector: None,
+                down_selector: None,
                 executor: Some(Executor {
                     protocol: Protocol::from_str(protocol)?,
                     url: url.to_string(),

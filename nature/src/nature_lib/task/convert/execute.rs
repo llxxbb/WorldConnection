@@ -1,9 +1,9 @@
 use std::panic::catch_unwind;
 
-use crate::nature_lib::middleware::builtin_converter::BuiltIn;
-use crate::db::flow_tool::state_check;
 use crate::db::RawTask;
+use crate::db::flow_tool::state_check;
 use crate::domain::*;
+use crate::nature_lib::middleware::builtin_converter::BuiltIn;
 use crate::nature_lib::middleware::filter::convert_before;
 use crate::nature_lib::task::{http_execute_async, TaskForConvert};
 use crate::nature_lib::task::local_common::local_execute;
@@ -12,10 +12,15 @@ pub type Execute = fn(para: &ConverterParameter) -> ConverterReturned;
 
 pub async fn call_executor(task: &mut TaskForConvert, raw: &RawTask, last_target: &Option<Instance>, master: Option<Instance>) -> ConverterReturned {
     if let Some(ref last) = last_target {
-        let demand = &task.target.last_select;
-        if !state_check(&last.states, &demand.last_none, &demand.last_all, &demand.last_any) {
-            return ConverterReturned::EnvError { msg: "target last instance unready".to_string() };
-        }
+        let demand = &task.target.down_selector;
+        let _ = match demand {
+            None => {}
+            Some(demand) => {
+                if !state_check(&last.states, &demand.last_none, &demand.last_all, &demand.last_any) {
+                    return ConverterReturned::EnvError { msg: "target last instance unready".to_string() };
+                }
+            }
+        };
     };
     &task.from;
     match convert_before(&mut task.from, task.target.convert_before.clone()).await {

@@ -4,7 +4,7 @@ use crate::util::*;
 
 /// select an upstream
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq)]
-pub struct FlowSelector {
+pub struct UpstreamSelector {
     #[serde(skip_serializing_if = "is_default")]
     #[serde(default)]
     pub state_all: HashSet<String>,
@@ -14,18 +14,6 @@ pub struct FlowSelector {
     #[serde(skip_serializing_if = "is_default")]
     #[serde(default)]
     pub state_none: HashSet<String>,
-    // The state of downstream, required all
-    #[serde(skip_serializing_if = "is_default")]
-    #[serde(default)]
-    pub last_all: HashSet<String>,
-    // The state of downstream, required any
-    #[serde(skip_serializing_if = "is_default")]
-    #[serde(default)]
-    pub last_any: HashSet<String>,
-    // The state of downstream, required none
-    #[serde(skip_serializing_if = "is_default")]
-    #[serde(default)]
-    pub last_none: HashSet<String>,
     #[serde(skip_serializing_if = "is_default")]
     #[serde(default)]
     pub context_all: HashSet<String>,
@@ -52,13 +40,10 @@ mod test {
 
     #[test]
     fn selector_serder_test() {
-        let mut se = FlowSelector {
+        let mut se = UpstreamSelector {
             state_all: HashSet::new(),
             state_any: Default::default(),
             state_none: HashSet::new(),
-            last_all: Default::default(),
-            last_any: Default::default(),
-            last_none: Default::default(),
             context_all: HashSet::new(),
             context_any: Default::default(),
             context_none: HashSet::new(),
@@ -77,7 +62,7 @@ mod test {
 
         // deserialize
 
-        let de: FlowSelector = serde_json::from_str(&rtn).unwrap();
+        let de: UpstreamSelector = serde_json::from_str(&rtn).unwrap();
         assert_eq!(de.context_none.is_empty(), true);
         assert_eq!(de.state_all.len(), 1);
     }

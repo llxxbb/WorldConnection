@@ -3,7 +3,7 @@ use std::ops::{Deref, DerefMut, Sub};
 
 use chrono::{Local, TimeZone};
 
-use crate::db::{LastSelector, MetaCache, MetaDao, Relation};
+use crate::db::{DownstreamSelector, MetaCache, MetaDao, Relation};
 use crate::db::downstream::DownStream;
 use crate::db::flow_tool::{ContextChecker, StateChecker};
 use crate::db::models::relation_target::RelationTarget;
@@ -13,7 +13,6 @@ use crate::util::*;
 /// Control for how to generate next instance for downstream `Meta`
 #[derive(Debug, Clone, Default)]
 pub struct Mission {
-    pub last_select: LastSelector,
     pub sys_context: HashMap<String, String>,
     pub downstream: DownStream,
 }
@@ -37,7 +36,7 @@ pub struct MissionRaw {
     pub to: String,
     #[serde(skip_serializing_if = "is_default")]
     #[serde(default)]
-    pub last_select: LastSelector,
+    pub down_select: Option<DownstreamSelector>,
     pub executor: Executor,
     #[serde(skip_serializing_if = "is_default")]
     #[serde(default)]
@@ -66,7 +65,7 @@ impl From<Mission> for MissionRaw {
     fn from(input: Mission) -> Self {
         MissionRaw {
             to: input.to.meta_string(),
-            last_select: input.last_select.clone(),
+            down_select: input.down_selector.clone(),
             executor: input.executor.clone(),
             convert_before: input.convert_before.clone(),
             convert_after: input.convert_after.clone(),
@@ -102,9 +101,9 @@ impl Mission {
                 Some(s) => Meta::new(&s, 1, MetaType::Dynamic)?,
             };
             let mission = Mission {
-                last_select: Default::default(),
                 downstream: DownStream {
                     to: t,
+                    down_selector: None,
                     executor: d.fun.clone(),
                     convert_before: vec![],
                     convert_after: vec![],
@@ -154,9 +153,9 @@ impl Mission {
         where MC: MetaCache, M: MetaDao
     {
         let rtn = Mission {
-            last_select: raw.last_select.clone(),
             downstream: DownStream {
                 to: mc_g.get(&raw.to, m_g).await?,
+                down_selector: raw.down_select.clone(),
                 executor: raw.executor.clone(),
                 convert_before: raw.convert_before.clone(),
                 convert_after: raw.convert_after.clone(),
@@ -199,16 +198,7 @@ fn init_by_instance(m: &mut Mission, instance: &Instance, r: &Relation) -> Resul
 
 impl From<Relation> for Mission {
     fn from(r: Relation) -> Self {
-        let last_select = match &r.selector {
-            None => LastSelector::default(),
-            Some(sel) => LastSelector {
-                last_all: sel.last_all.clone(),
-                last_any: sel.last_any.clone(),
-                last_none: sel.last_none.clone(),
-            }
-        };
         Mission {
-            last_select,
             downstream: r.downstream.clone(),
             sys_context: Default::default(),
         }
@@ -231,8 +221,8 @@ fn get_delay(ins: &Instance, rela: &Relation) -> Result<i32> {
 #[cfg(test)]
 mod test {
     use crate::db::flow_tool::{context_check, state_check};
-    use crate::db::FlowSelector;
     use crate::db::models::relation_target::RelationTarget;
+    use crate::db::UpstreamSelector;
 
     use super::*;
 
@@ -270,7 +260,7 @@ mod test {
     #[test]
     fn state_verify() {
         let mut relation = Relation::default();
-        let mut selector = FlowSelector::default();
+        let mut selector = UpstreamSelector::default();
         selector.state_any.insert("a".to_string());
         relation.selector = Some(selector);
         let relations = vec![relation];
@@ -285,7 +275,7 @@ mod test {
     #[test]
     fn sys_context_verify() {
         let mut relation = Relation::default();
-        let mut selector = FlowSelector::default();
+        let mut selector = UpstreamSelector::default();
         selector.sys_context_any.insert("a".to_string());
         relation.selector = Some(selector);
         let relations = vec![relation];
@@ -300,7 +290,7 @@ mod test {
     #[test]
     fn context_verify() {
         let mut relation = Relation::default();
-        let mut selector = FlowSelector::default();
+        let mut selector = UpstreamSelector::default();
         selector.context_any.insert("a".to_string());
         relation.selector = Some(selector);
         let relations = vec![relation];

@@ -2,14 +2,15 @@ use std::clone::Clone;
 use std::ops::{Deref, DerefMut};
 use std::string::ToString;
 
-use crate::db::{FlowSelector, MetaCache, MetaDao, RawRelation, RelationSettings};
+use crate::db::{MetaCache, MetaDao, RawRelation, RelationSettings, UpstreamSelector};
 use crate::db::downstream::DownStream;
 use crate::domain::*;
 
+/// `form`,`selector`,`delay_on_pare` are the properties about upstream
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct Relation {
     pub from: String,
-    pub selector: Option<FlowSelector>,
+    pub selector: Option<UpstreamSelector>,
     pub delay_on_pare: (i32, u8),
     pub downstream: DownStream,
 }
@@ -60,6 +61,7 @@ impl Relation {
                     from: val.from_meta.to_string(),
                     downstream: DownStream {
                         to: m_to,
+                        down_selector: settings.down_selector,
                         executor: e,
                         convert_before: settings.convert_before,
                         convert_after: settings.convert_after,
@@ -76,6 +78,7 @@ impl Relation {
                 from: val.from_meta.to_string(),
                 downstream: DownStream {
                     to: m_to.clone(),
+                    down_selector: settings.down_selector,
                     executor: Executor::new_auto(),
                     convert_before: settings.convert_before,
                     convert_after: settings.convert_after,
@@ -161,6 +164,7 @@ mod test_from_raw {
     fn one_group_is_ok() {
         let settings = RelationSettings {
             selector: None,
+            down_selector: None,
             executor: Some(Executor {
                 protocol: Protocol::LocalRust,
                 url: "url_one".to_string(),

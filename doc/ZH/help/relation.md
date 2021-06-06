@@ -18,7 +18,8 @@ VALUES('B:sale/order:1', 'B:sale/orderState:1', '{"target_states":{"add":["new"]
 
 ```json
 {
-    "selector": {...},		// 缺省为 null, 选择符合条件的上游和下游。见下面的“选择器”
+    "selector": {...},		// 缺省为 null, 选择符合条件的上游。见下面的“selector”
+    "down_selector": {...},// 缺省为 null, 选择符合条件的下游。见下面的“down_selector”
     "executor": {...},		// 缺省为 null, 指定 Executor。见下面的 “Executor”
     "convert_before": [{...}],	// 前置 Executor, 可以指定多个，按给定的顺序执行。
     "convert_after": [{...}],	// 后置 Executor, 可以指定多个，按给定的顺序执行。
@@ -30,18 +31,15 @@ VALUES('B:sale/order:1', 'B:sale/orderState:1', '{"target_states":{"add":["new"]
 }
 ```
 
-### 选择器
+### selector
 
-上游或下游必须满足指定条件 Nature 才可以调用 `Executor`。这些条件的定义如下：
+上游必须满足指定条件 Nature 才可以调用 `Executor`。这些条件的定义如下：
 
 ```json
 {
     "state_all": ["s1"],	// 缺省为 null, 上游必须满足全部指定的状态
     "state_any": ["s1"],	// 缺省为 null, 上游需要满足其中的一个状态
     "state_none": ["s1"],	// 缺省为 null, 上游不能包含任何给定的状态
-    "last_all": ["s1"],		// 缺省为 null, 下游上一版本必须满足全部指定的状态
-    "last_any": ["s1"],		// 缺省为 null, 下游上一版本需要满足其中的一个状态
-    "last_none": ["s1"],	// 缺省为 null, 下游上一版本不能包含任何给定的状态
     "context_all": ["c1"],	// 缺省为 null, 上游必须满足全部指定的 context
     "context_any": ["c1"],	// 缺省为 null, 上游需要满足其中的一个 context
     "context_none": ["c1"],	// 缺省为 null, 上游不能包含任何给定的 context
@@ -52,8 +50,6 @@ VALUES('B:sale/order:1', 'B:sale/orderState:1', '{"target_states":{"add":["new"]
 ```
 
 条件的检查顺序为：xxx_none，xxx_all，xxx_any。
-
-**注意**：last_xxx 如果不满足，则会产生 `EnvError`，并在以后某个时间尝试重试。
 
 **注意**：尽管`context`和`sys_context`都是 KV 类型，但当做流程选择条件时，Nature 只处理“K”不处理“V”，这是从简化设计角度来考虑的。“V”的形式是业务决定的，可能是一个URL，“a|b|c”，或者是个json，所以是不规范的。Nature 也不想对此进行规范，这样可能既限制了业务的灵活性又降低了处理性能。而“K”则是非常规范的，就是一个标签，非常便于 Nature 进行处理。当然这种方式也有问题，当`context`和`sys_context`用作流程选择时就失去了KV的意义。如根据性别选择不同的处理流程：
 
@@ -86,6 +82,22 @@ VALUES('B:sale/order:1', 'B:sale/orderState:1', '{"target_states":{"add":["new"]
   - 男孩流程：relation1.selector.**context_all** = ["gender.isBoy"]
   
   - 女孩流程：relation2.selector.**context_none** = ["gender.isBoy"]
+
+### down_selector
+
+下游必须满足指定条件 Nature 才可以调用 `Executor`。这些条件的定义如下：
+
+```json
+{
+    "last_all": ["s1"],		// 缺省为 null, 下游上一版本必须满足全部指定的状态
+    "last_any": ["s1"],		// 缺省为 null, 下游上一版本需要满足其中的一个状态
+    "last_none": ["s1"],	// 缺省为 null, 下游上一版本不能包含任何给定的状态
+}
+```
+
+条件的检查顺序为：xxx_none，xxx_all，xxx_any。
+
+**注意**：last_xxx 如果不满足，则会产生 `EnvError`，并在以后某个时间尝试重试。
 
 ### Executor
 

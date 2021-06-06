@@ -40,6 +40,9 @@ impl RelationCache for RelationCacheImpl {
             return Err(NatureError::VerifyError(msg));
         }
         let rtn = getter.get_relations(meta_from, meta_cache, meta_dao).await?;
+        if rtn.is_empty() {
+            info!("no relation found for meta: {}", meta.get_key());
+        }
         let cpy = rtn.clone();
         let mut cache = CACHE_MAPPING.lock().unwrap();
         cache.insert(meta_from.to_string(), rtn);

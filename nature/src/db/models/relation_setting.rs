@@ -1,4 +1,4 @@
-use crate::db::FlowSelector;
+use crate::db::{DownstreamSelector, UpstreamSelector};
 use crate::db::relation_target::RelationTarget;
 use crate::domain::*;
 use crate::util::*;
@@ -7,7 +7,10 @@ use crate::util::*;
 pub struct RelationSettings {
     #[serde(skip_serializing_if = "is_default")]
     #[serde(default)]
-    pub selector: Option<FlowSelector>,
+    pub selector: Option<UpstreamSelector>,
+    #[serde(skip_serializing_if = "is_default")]
+    #[serde(default)]
+    pub down_selector: Option<DownstreamSelector>,
     /// array executor will share the convert task
     #[serde(skip_serializing_if = "is_default")]
     #[serde(default)]
@@ -70,7 +73,7 @@ mod test {
     fn selector_test() {
         let mut set = HashSet::<String>::new();
         set.insert("one".to_string());
-        let mut fs = FlowSelector::default();
+        let mut fs = UpstreamSelector::default();
         fs.state_all = set;
 
         let mut setting = RelationSettings::default();
