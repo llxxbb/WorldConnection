@@ -230,6 +230,7 @@ mod sys_context_test {
 mod test {
     use chrono::Local;
 
+    use crate::db::Relation;
     use crate::db::relation_target::RelationTarget;
 
     use super::*;
@@ -247,14 +248,20 @@ mod test {
             target: Mission {
                 to: meta.clone(),
                 last_select: Default::default(),
-                executor: Default::default(),
-                convert_before: vec![],
-                convert_after: vec![],
-                target_demand: Default::default(),
-                use_upstream_id: true,
-                delay: 0,
+                downstream: Relation {
+                    from: "".to_string(),
+                    to: Default::default(),
+                    selector: None,
+                    executor: Default::default(),
+                    convert_before: vec![],
+                    convert_after: vec![],
+                    use_upstream_id: true,
+                    target_demand: Default::default(),
+                    delay: 0,
+                    delay_on_pare: (0, 0),
+                    id_bridge: false,
+                },
                 sys_context: Default::default(),
-                id_bridge: false,
             },
             conflict_version: 0,
         };
@@ -293,19 +300,25 @@ mod test {
                     m
                 },
                 last_select: Default::default(),
-                executor: Default::default(),
-                convert_before: vec![],
-                convert_after: vec![],
-                target_demand: RelationTarget {
-                    state_add: vec!["new".to_string()],
-                    state_remove: vec![],
-                    append_para: vec![],
-                    dynamic_para: "".to_string(),
+                downstream: Relation {
+                    from: "".to_string(),
+                    to: Default::default(),
+                    selector: None,
+                    executor: Default::default(),
+                    convert_before: vec![],
+                    convert_after: vec![],
+                    use_upstream_id: false,
+                    target_demand: RelationTarget {
+                        state_add: vec!["new".to_string()],
+                        state_remove: vec![],
+                        append_para: vec![],
+                        dynamic_para: "".to_string(),
+                    },
+                    delay: 0,
+                    delay_on_pare: (0, 0),
+                    id_bridge: false,
                 },
-                use_upstream_id: false,
-                delay: 0,
                 sys_context: Default::default(),
-                id_bridge: false,
             },
             conflict_version: 0,
         };

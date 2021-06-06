@@ -14,12 +14,15 @@ pub struct FlowSelector {
     #[serde(skip_serializing_if = "is_default")]
     #[serde(default)]
     pub state_none: HashSet<String>,
+    // The state of downstream, required all
     #[serde(skip_serializing_if = "is_default")]
     #[serde(default)]
     pub last_all: HashSet<String>,
+    // The state of downstream, required any
     #[serde(skip_serializing_if = "is_default")]
     #[serde(default)]
     pub last_any: HashSet<String>,
+    // The state of downstream, required none
     #[serde(skip_serializing_if = "is_default")]
     #[serde(default)]
     pub last_none: HashSet<String>,

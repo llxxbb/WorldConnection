@@ -5,12 +5,14 @@
 - 功能性先于非功能性需求
 - 应用情景支持，内部优先于外部（如网关）
 
-## Release 0.24.0
+## Release 1.0.1
 
 ### It should commit
 
 
 ### 未完成
+
+Mission structure adjust
 
 support edit relation
 

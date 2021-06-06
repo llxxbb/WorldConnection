@@ -1,5 +1,6 @@
+use std::borrow::BorrowMut;
 use std::collections::HashMap;
-use std::ops::Sub;
+use std::ops::{Deref, DerefMut, Sub};
 
 use chrono::{Local, TimeZone};
 
@@ -14,14 +15,22 @@ use crate::util::*;
 pub struct Mission {
     pub to: Meta,
     pub last_select: LastSelector,
-    pub executor: Executor,
-    pub convert_before: Vec<Executor>,
-    pub convert_after: Vec<Executor>,
-    pub target_demand: RelationTarget,
-    pub use_upstream_id: bool,
-    pub delay: i32,
     pub sys_context: HashMap<String, String>,
-    pub id_bridge: bool,
+    pub downstream: Relation,
+}
+
+impl Deref for Mission {
+    type Target = Relation;
+
+    fn deref(&self) -> &<Self as Deref>::Target {
+        &self.downstream
+    }
+}
+
+impl DerefMut for Mission {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.downstream.borrow_mut()
+    }
 }
 
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
@@ -58,14 +67,14 @@ impl From<Mission> for MissionRaw {
     fn from(input: Mission) -> Self {
         MissionRaw {
             to: input.to.meta_string(),
-            last_select: input.last_select,
-            executor: input.executor,
-            convert_before: input.convert_before,
-            convert_after: input.convert_after,
-            target_demand: input.target_demand,
+            last_select: input.last_select.clone(),
+            executor: input.executor.clone(),
+            convert_before: input.convert_before.clone(),
+            convert_after: input.convert_after.clone(),
+            target_demand: input.target_demand.clone(),
             use_upstream_id: input.use_upstream_id,
             delay: input.delay,
-            sys_context: input.sys_context,
+            sys_context: input.sys_context.clone(),
             id_bridge: input.id_bridge,
         }
     }
@@ -96,14 +105,20 @@ impl Mission {
             let mission = Mission {
                 to: t,
                 last_select: Default::default(),
-                executor: d.fun.clone(),
-                convert_before: vec![],
-                convert_after: vec![],
-                target_demand: Default::default(),
-                use_upstream_id: d.use_upstream_id,
-                delay: d.delay,
+                downstream: Relation {
+                    from: "".to_string(),
+                    to: Default::default(),
+                    selector: None,
+                    executor: d.fun.clone(),
+                    convert_before: vec![],
+                    convert_after: vec![],
+                    use_upstream_id: d.use_upstream_id,
+                    target_demand: Default::default(),
+                    delay: d.delay,
+                    delay_on_pare: (0, 0),
+                    id_bridge: false,
+                },
                 sys_context: Default::default(),
-                id_bridge: false,
             };
             missions.push(mission)
         }
@@ -146,14 +161,20 @@ impl Mission {
         let rtn = Mission {
             to: mc_g.get(&raw.to, m_g).await?,
             last_select: raw.last_select.clone(),
-            executor: raw.executor.clone(),
-            convert_before: raw.convert_before.clone(),
-            convert_after: raw.convert_after.clone(),
-            target_demand: raw.target_demand.clone(),
-            use_upstream_id: raw.use_upstream_id,
-            delay: raw.delay,
+            downstream: Relation {
+                from: "".to_string(),
+                to: Default::default(),
+                selector: None,
+                executor: raw.executor.clone(),
+                convert_before: raw.convert_before.clone(),
+                convert_after: raw.convert_after.clone(),
+                use_upstream_id: raw.use_upstream_id,
+                target_demand: raw.target_demand.clone(),
+                delay: raw.delay,
+                delay_on_pare: (0, 0),
+                id_bridge: raw.id_bridge,
+            },
             sys_context: raw.sys_context.clone(),
-            id_bridge: raw.id_bridge,
         };
         Ok(rtn)
     }
@@ -187,25 +208,19 @@ fn init_by_instance(m: &mut Mission, instance: &Instance, r: &Relation) -> Resul
 
 impl From<Relation> for Mission {
     fn from(r: Relation) -> Self {
-        let last_select = match r.selector {
+        let last_select = match &r.selector {
             None => LastSelector::default(),
             Some(sel) => LastSelector {
-                last_all: sel.last_all,
-                last_any: sel.last_any,
-                last_none: sel.last_none,
+                last_all: sel.last_all.clone(),
+                last_any: sel.last_any.clone(),
+                last_none: sel.last_none.clone(),
             }
         };
         Mission {
             to: r.to.clone(),
             last_select,
-            executor: r.executor.clone(),
-            convert_before: r.convert_before.clone(),
-            convert_after: r.convert_after.clone(),
-            target_demand: r.target.clone(),
-            use_upstream_id: r.use_upstream_id,
-            delay: 0,
+            downstream: r.clone(),
             sys_context: Default::default(),
-            id_bridge: r.id_bridge,
         }
     }
 }
@@ -323,7 +338,7 @@ mod test {
         relation.to = meta.clone();
         relation.executor = executor.clone();
         relation.use_upstream_id = true;
-        relation.target = target;
+        relation.target_demand = target;
         relation.delay = 2;
         let relations = vec![relation];
         let rtn = Mission::get_by_instance(&Instance::default(), &relations, context_check, state_check);
